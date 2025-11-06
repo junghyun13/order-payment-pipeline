@@ -1,0 +1,11 @@
+package com.example.orderpay.order.dto;
+
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class OrderStatusUpdateRequest {
+    private String to; // 예: "CONFIRMED", "DELIVERED"
+
+}
