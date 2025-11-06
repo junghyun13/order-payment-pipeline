@@ -1,0 +1,132 @@
+HELP.md
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+# ===============================
+# ✅ 추가 추천 규칙
+# ===============================
+
+# OS 잡파일
+.DS_Store
+Thumbs.db
+
+# Gradle 캐시/결과
+**/.gradle/
+**/build/
+**/out/
+**/bin/
+
+# 로그/덤프
+logs/
+**/*.log
+hs_err_pid*.log
+replay_pid*.log
+*.hprof
+*.heap
+*.dump
+
+# 환경 변수/시크릿
+.env
+*.env
+.env.*          # ex) .env.local, .env.render
+*.local.yml
+*.secrets.yml
+
+# Spring 설정 - application.yml은 무조건 무시, 예시만 허용
+**/src/main/resources/application.yml
+**/src/main/resources/application-*.yml
+!**/src/main/resources/application-example.yml
+!**/src/main/resources/application-example.yaml
+# (원하면 sample 명칭도 허용)
+!**/src/main/resources/application.yml.sample
+
+# 테스트 리소스도 기본 무시 (필요시 예시만 유지)
+**/src/test/resources/application*.yml
+!**/src/test/resources/application-example.yml
+
+# Flyway 마이그레이션은 반드시 커밋(보호)
+!**/src/main/resources/db/migration/**
+!**/src/main/resources/db/migration/*.sql
+
+# 인증서/키스토어/자격증명
+*.jks
+*.p12
+*.pfx
+*.crt
+*.key
+*.pem
+
+# Docker / Compose 관련 로컬 산출물
+**/docker/**/data/
+**/docker-data/
+**/compose-data/
+**/tmp/
+docker-compose.override.yml
+
+# infra(로컬 실행)에서 생길 수 있는 데이터 볼륨 폴더 패턴
+infra/**/data/
+infra/**/volumes/
+infra/**/tmp/
+
+# Kafka/Redpanda/OpenSearch 로컬 데이터(만약 폴더 마운트할 때)
+kafka-data/
+redpanda-data/
+opensearch-data/
+
+# k6 결과/리포트
+infra/k6/results/
+*.json.summary
+*.html
+*.csv
+
+# 코드 커버리지/리포트
+**/reports/
+**/test-results/
+**/jacoco/
+**/coverage/
+
+# Node(있다면)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Misc
+*.swp
+*.swo
+
+/src/main/resources/application-secret.yml
