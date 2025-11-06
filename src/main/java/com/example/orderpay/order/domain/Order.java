@@ -45,5 +45,14 @@ public class Order {
         this.status = newStatus;
         this.updatedAt = OffsetDateTime.now();
     }
+    public void cancel(String reason) {
+        if (this.status == OrderStatus.CANCELLED) {
+            throw new IllegalStateException("이미 취소된 주문입니다.");
+        }
+        this.status = OrderStatus.CANCELLED;
+        this.updatedAt = OffsetDateTime.now();
+
+    }
+
 }
 
