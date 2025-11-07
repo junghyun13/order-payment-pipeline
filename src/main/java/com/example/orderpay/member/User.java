@@ -18,11 +18,17 @@ public class User {
 
     public User() {}
 
+    @Column(unique = true, nullable = false)
+    private String email; // 이메일 추가
+
+
     // 생성자
-    public User(String username, String password) {
+    public User(String username, String password, String email) {
         this.username = username;
         this.password = password;
+        this.email = email;
     }
+
 
     // getter / setter
     public Long getId() {
@@ -48,5 +54,14 @@ public class User {
     public void setPassword(String password) {
         this.password = password;
     }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
 }
 

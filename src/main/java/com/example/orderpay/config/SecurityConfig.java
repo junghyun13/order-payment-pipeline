@@ -31,7 +31,7 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable()) // csrf 비활성화
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/login", "/auth/signup", "/api/v1/orders/**","/index.html","/app.js",
+                        .requestMatchers("/auth/login", "/auth/signup","/auth/send-code", "/auth/verify-email","/auth/reset-password", "/auth/send-code-find", "/api/v1/orders/**","/index.html","/app.js",
                                 "/",
                                 "/favicon.ico",
                                 "/js/**",
