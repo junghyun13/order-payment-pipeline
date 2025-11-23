@@ -6,6 +6,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class OrderStatusUpdateRequest {
-    private String to; // 예: "CONFIRMED", "DELIVERED"
+    private String to; //
 
 }

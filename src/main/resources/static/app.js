@@ -21,10 +21,71 @@ function showLogoutScreen() {
     document.getElementById("login-screen").style.display = "none";
     document.getElementById("signup-screen").style.display = "none";
     document.getElementById("logout-screen").style.display = "block";
+    showLoginStatus();
 }
 
 function backToLogin() {
     showLogin();
+}
+// ✅ 로그인 상태 표시
+function showLoginStatus() {
+    if (!token) {
+        document.getElementById("login-status").innerText = "";
+        return;
+    }
+
+    fetch('/auth/me', {
+        method: 'GET',
+        headers: {
+            'Authorization': 'Bearer ' + token
+        }
+    })
+    .then(res => res.text())
+    .then(msg => {
+        document.getElementById("login-status").innerText = msg; // 로그인상태 메시지
+    })
+    .catch(err => {
+        document.getElementById("login-status").innerText = "로그인 상태 확인 실패";
+    });
+}
+
+// ✅ 화면 전환 함수
+function showDeleteScreen() {
+    document.getElementById("logout-screen").style.display = "none";
+    document.getElementById("delete-screen").style.display = "block";
+}
+
+function backToLogoutScreen() {
+    document.getElementById("delete-screen").style.display = "none";
+    document.getElementById("logout-screen").style.display = "block";
+}
+
+// ✅ 회원 탈퇴
+function deleteUser() {
+    const password = document.getElementById("delete-password").value;
+    if (!password) {
+        document.getElementById("delete-msg").innerText = "비밀번호를 입력해주세요!";
+        return;
+    }
+
+    fetch('/auth/delete?password=' + encodeURIComponent(password), {
+        method: 'POST',
+        headers: {
+            'Authorization': 'Bearer ' + token
+        }
+    })
+    .then(res => res.text())
+    .then(msg => {
+        document.getElementById("delete-msg").innerText = msg;
+        if (msg.includes("완료")) {
+            token = null; // 로그아웃 처리
+            document.getElementById("delete-screen").style.display = "none";
+            document.getElementById("initial-screen").style.display = "block";
+        }
+    })
+    .catch(err => {
+        document.getElementById("delete-msg").innerText = err.message;
+    });
 }
 
 let emailVerified = false; // 회원가입용 이메일 인증 여부
@@ -93,6 +154,7 @@ function signup() {
     const username = document.getElementById("signup-username").value;
     const password = document.getElementById("signup-password").value;
     const email = document.getElementById("signup-email").value;
+    const role = document.getElementById("signup-role").value; // ✅ 역할 추가
 
     // 1️⃣ 이메일 인증 완료 여부 확인
     if (!emailVerified) {
@@ -107,22 +169,22 @@ function signup() {
     }
 
     fetch('/auth/signup', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({username, password, email})
-        })
-        .then(res => res.text())
-        .then(msg => {
-            document.getElementById("signup-msg").innerText = msg;
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username, password, email, role}) // ✅ role 전송
+            })
+            .then(res => res.text())
+            .then(msg => {
+                document.getElementById("signup-msg").innerText = msg;
 
-            if (msg.includes("성공")) {
-                showLogin(); // ✅ 기존 showLogoutScreen() 대신 showLogin() 호출
-                document.getElementById("login-msg").innerText = "회원가입 성공! 로그인 해주세요.";
-            }
-        })
-        .catch(err => {
-            document.getElementById("signup-msg").innerText = err.message;
-        });
+                if (msg.includes("성공")) {
+                    showLogin();
+                    document.getElementById("login-msg").innerText = "회원가입 성공! 로그인 해주세요.";
+                }
+            })
+            .catch(err => {
+                document.getElementById("signup-msg").innerText = err.message;
+            });
 }
 
 

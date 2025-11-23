@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "orders")
+@Table(name = "orders") //메뉴주문 테이블
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
@@ -28,7 +28,7 @@ public class Order {
 
     private BigDecimal totalAmount;
 
-    private String channel;
+
 
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;

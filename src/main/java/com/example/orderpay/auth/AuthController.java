@@ -1,10 +1,13 @@
 package com.example.orderpay.auth;
 
+import com.example.orderpay.auth.dto.MessageResponse;
 import com.example.orderpay.member.User;
 import com.example.orderpay.member.UserRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
@@ -40,7 +43,7 @@ public class AuthController {
     @PostMapping("/signup")
     public ResponseEntity<String> signup(@RequestBody User user) {
         try {
-            authService.signup(user.getUsername(), user.getPassword(), user.getEmail());
+            authService.signup(user.getUsername(), user.getPassword(), user.getEmail(),user.getRole().name());
             return ResponseEntity.ok("회원가입 성공 (이메일 인증 완료)"); // 수정됨
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -108,6 +111,38 @@ public class AuthController {
         String token = authHeader.substring(7); // "Bearer " 제거
         return ResponseEntity.ok(authService.logout(token));
     }
+
+
+    @GetMapping("/me")
+    public ResponseEntity<?> me(@LoginUser User loginUser) {
+        if (loginUser == null) {
+            return ResponseEntity.status(401).body(Map.of(
+                    "message", "로그인 필요"
+            ));
+        }
+
+        // 로그인 사용자의 정보 반환
+        return ResponseEntity.ok(Map.of(
+                "userId", loginUser.getId(),
+                "username", loginUser.getUsername(),
+                "email", loginUser.getEmail(),
+                "role", loginUser.getRole() != null ? loginUser.getRole().name() : null
+        ));
+    }
+
+
+    // 회원 탈퇴 (자기 계정만)
+    @PostMapping("/delete")
+    public ResponseEntity<String> deleteUser(@LoginUser User loginUser,
+                                             @RequestParam("password") String password) {
+        try {
+            String result = authService.deleteUser(loginUser, password);
+            return ResponseEntity.ok(result);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
 
 
 }

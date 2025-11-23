@@ -53,4 +53,9 @@ public class JwtUtil {
             return 0;
         }
     }
+
+    public String extractUsername(String token) {
+        return getUsername(token); // 기존 getUsername() 사용
+    }
+
 }

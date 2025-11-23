@@ -9,9 +9,7 @@ import java.util.List;
 
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class OrderRequest {
-    private Long userId;
     private Long storeId;
-    private String channel;
     private List<OrderItemRequest> items;
 
     public BigDecimal calculateTotal() {

@@ -1,5 +1,6 @@
 package com.example.orderpay.auth;
 
+import com.example.orderpay.member.Role;
 import com.example.orderpay.member.User;
 import com.example.orderpay.member.UserRepository;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -81,18 +82,32 @@ public class AuthService {
     }
 
     // ✅ 회원가입
-    public String signup(String username, String password, String email) {
+    public String signup(String username, String password, String email,String roleStr) {
+        System.out.println("===== 회원가입 시작 =====");
+        System.out.println("입력 username: " + username);
+        System.out.println("입력 email: " + email);
+        System.out.println("입력 password: " + password);
+        System.out.println("입력 roleStr: " + roleStr);
         validateGmail(email);
 
-        if (userRepository.findByUsername(username) != null)
+        // Optional 체크
+        if (userRepository.findByUsername(username).isPresent()) {
             throw new RuntimeException("이미 존재하는 사용자입니다.");
-
-        if (userRepository.findByEmail(email) != null)
+        }
+        if (userRepository.findByEmail(email).isPresent()) {
             throw new RuntimeException("이미 등록된 이메일입니다.");
+        }
 
         validatePassword(password);
 
-        User user = new User(username, passwordEncoder.encode(password), email);
+        Role role;
+        try {
+            role = Role.valueOf(roleStr.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("역할은 USER 또는 OWNER만 가능합니다.");
+        }
+
+        User user = new User(username, passwordEncoder.encode(password), email, role);
         userRepository.save(user);
 
         sendEmail(email, "회원가입 완료", username + "님, 회원가입이 완료되었습니다.");
@@ -115,16 +130,18 @@ public class AuthService {
 
     // ✅ 아이디 찾기
     public String findUsernameByEmail(String email) {
-        User user = userRepository.findByEmail(email);
-        if (user == null) throw new RuntimeException("등록된 이메일이 없습니다.");
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("등록된 이메일이 없습니다."));
+
         sendEmail(user.getEmail(), "아이디 찾기", "회원님의 아이디: " + user.getUsername());
         return "아이디를 이메일로 발송했습니다.";
     }
 
     // ✅ 비밀번호 재설정
     public String resetPassword(String email, String newPassword) {
-        User user = userRepository.findByEmail(email);
-        if (user == null) throw new RuntimeException("등록된 이메일이 없습니다.");
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("등록된 이메일이 없습니다."));
+
 
         validatePassword(newPassword);
         user.setPassword(passwordEncoder.encode(newPassword));
@@ -145,10 +162,13 @@ public class AuthService {
 
     // ✅ 로그인
     public String login(String username, String password) {
-        User user = userRepository.findByUsername(username);
-        if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("로그인 실패"));
+
+        if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new RuntimeException("로그인 실패");
         }
+
         return jwtUtil.generateToken(user.getUsername());
     }
 
@@ -161,4 +181,23 @@ public class AuthService {
         }
         return "로그아웃 성공";
     }
+
+    // ✅ 로그인한 사용자 계정 탈퇴
+    public String deleteUser(User loginUser, String password) {
+        if (loginUser == null) {
+            throw new RuntimeException("로그인이 필요합니다.");
+        }
+
+        if (!passwordEncoder.matches(password, loginUser.getPassword())) {
+            throw new RuntimeException("비밀번호가 올바르지 않습니다.");
+        }
+
+        userRepository.delete(loginUser);
+
+        sendEmail(loginUser.getEmail(), "회원 탈퇴 완료", loginUser.getUsername() + "님, 회원 탈퇴가 완료되었습니다.");
+
+        return "회원 탈퇴가 완료되었습니다.";
+    }
+
+
 }
