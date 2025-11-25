@@ -1,6 +1,5 @@
 package com.example.orderpay.search.service;
 
-
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.query_dsl.*;
 import com.example.orderpay.member.User;
@@ -23,7 +22,6 @@ public class SearchService {
 
     private final ElasticsearchClient elasticsearchClient;
 
-
     public SearchResponse search(User loginUser, String q, Long storeId, String status) {
 
         // 로그인 체크
@@ -33,19 +31,20 @@ public class SearchService {
 
         List<Query> mustQueries = new ArrayList<>();
 
-        // 검색어 (메뉴명, 첫 글자 기준 검색)
+        // 🔍 검색어 (메뉴명, 부분 검색 가능)
         if (q != null && !q.isBlank()) {
             mustQueries.add(
                     NestedQuery.of(n -> n
                             .path("items")
-                            .query(PrefixQuery.of(p -> p
-                                    .field("items.name")
-                                    .value(q) // 입력값으로 시작하는 것만 검색
-                            )._toQuery())
+                            .query(
+                                    MatchPhrasePrefixQuery.of(m -> m
+                                            .field("items.name")
+                                            .query(q)
+                                    )._toQuery()
+                            )
                     )._toQuery()
             );
         }
-
 
         // storeId 필터
         if (storeId != null) {

@@ -1,6 +1,29 @@
 version: '3.8'
 
 services:
+  app:
+    image: junghyeon13/springboot-app
+    container_name: orderpay-app
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      WAIT_FOR_IT_TIMEOUT: "60"   # <- 타임아웃 환경변수 추가
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      redpanda:
+        condition: service_started
+    entrypoint: >
+      sh -c "WAIT_FOR_IT_TIMEOUT=60 /app/wait-for-it.sh es-nori:9200 && java -jar /app/app.jar"
+    networks:
+      - infra_backend  # 변경된 네트워크 이름
+
+
   redpanda:
     image: redpandadata/redpanda:latest
     container_name: redpanda
@@ -17,19 +40,21 @@ services:
       - --check=false
       - --kafka-addr PLAINTEXT://0.0.0.0:9092
       - --advertise-kafka-addr PLAINTEXT://redpanda:9092
+    networks:
+      - infra_backend  # 변경된 네트워크 이름
 
-  console:
-    image: redpandadata/console:latest
-    container_name: redpanda-console
+  redis:
+    image: redis:7-alpine
+    container_name: redis
     ports:
-      - "8082:8080"
-    environment:
-      - KAFKA_BROKERS=redpanda:9092
-    depends_on:
-      - redpanda
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    networks:
+      - infra_backend  # 변경된 네트워크 이름
 
   elasticsearch:
-    image: es-nori:8.8.1
+    image: junghyeon13/es-nori
     container_name: es-nori
     environment:
       - node.name=es-node
@@ -48,21 +73,17 @@ services:
       - "9200:9200"
       - "9300:9300"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9200/" ]
+      test: [ "CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1" ]
       interval: 10s
       timeout: 5s
-      retries: 5
-
-
-
-  redis:
-    image: redis:7-alpine
-    container_name: redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redisdata:/data
+      retries: 10
+    networks:
+      - infra_backend  # 변경된 네트워크 이름
 
 volumes:
   esdata:
   redisdata:
+
+networks:
+  infra_backend:
+    driver: bridge  # 네트워크 이름 변경

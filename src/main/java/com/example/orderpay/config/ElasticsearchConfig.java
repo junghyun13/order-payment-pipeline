@@ -18,7 +18,8 @@ public class ElasticsearchConfig {
     public ElasticsearchClient elasticsearchClient() {
         // 1️⃣ RestClient 생성
         RestClient restClient = RestClient.builder(
-                new HttpHost("localhost", 9200, "http")
+                new HttpHost("es-nori", 9200, "http")
+
         ).build();
 
         // 2️⃣ ObjectMapper에 JavaTimeModule 등록

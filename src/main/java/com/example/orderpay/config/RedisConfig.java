@@ -14,7 +14,7 @@ public class RedisConfig {
     // ✅ Redis 연결 정보 (기본 localhost:6379)
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
-        return new LettuceConnectionFactory("localhost", 6379);
+        return new LettuceConnectionFactory("redis", 6379);
     }
 
     // ✅ Redis 문자열 저장용 템플릿

@@ -1,0 +1,65 @@
+name: CI/CD - Auto Deploy (Self-hosted)
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      # 1. 코드 체크아웃
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # 2. JDK 세팅
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # 3. Gradle 빌드 (테스트 제외)
+      - name: Build with Gradle
+        run: ./gradlew clean build -x test
+
+      # 4. Docker Hub 로그인
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 5. WSL2에서 wait-for-it.sh 실행 권한 부여
+      - name: Make wait-for-it.sh Executable
+        run: |
+          cd /mnt/c/Users/jung0/test/order-payment-pipeline/infra
+          chmod +x wait-for-it.sh
+
+      # 6. WSL2 환경 변수 시크릿 먼저 전달
+      - name: Export Environment Secrets
+        run: |
+          export SPRING_DATASOURCE_USERNAME=${{ secrets.SPRING_DATASOURCE_USERNAME }}
+          export SPRING_DATASOURCE_PASSWORD=${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+          export MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
+          export MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
+
+      # 7. Elasticsearch Docker 이미지 빌드 & 푸시
+      - name: Build & Push Elasticsearch Image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/es-nori ./src/main/resources/elasticsearch
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/es-nori
+
+      # 8. Spring Boot 앱 Docker 이미지 빌드 & 푸시
+      - name: Build & Push Spring Boot Image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/springboot-app .
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/springboot-app
+
+      # 9. WSL2에서 run_portfolio.sh 실행 (로컬)
+      - name: Deploy to Local WSL
+        run: |
+          cd /mnt/c/Users/jung0/test/order-payment-pipeline/infra
+          chmod +x run_portfolio.sh
+          ./run_portfolio.sh

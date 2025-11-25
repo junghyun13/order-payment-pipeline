@@ -1,7 +1,7 @@
 package com.example.orderpay.search.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import jakarta.persistence.Id;
+import org.springframework.data.annotation.Id;
 import lombok.*;
 import org.springframework.data.elasticsearch.annotations.*;
 
