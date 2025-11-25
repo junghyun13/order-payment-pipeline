@@ -9,7 +9,7 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      # 1. 코드 체크아웃 수정
+      # 1. 코드 체크아웃 수정1
       - name: Checkout
         uses: actions/checkout@v3
 
