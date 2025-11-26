@@ -67,5 +67,13 @@ jobs:
       - name: Deploy to Local WSL
         run: |
           cd /mnt/c/Users/jung0/test/order-payment-pipeline/infra
+
+          # 1) GitHub Actions secrets로 .env 파일 생성
+          echo "SPRING_DATASOURCE_USERNAME=${{ secrets.SPRING_DATASOURCE_USERNAME }}" > .env
+          echo "SPRING_DATASOURCE_PASSWORD=${{ secrets.SPRING_DATASOURCE_PASSWORD }}" >> .env
+          echo "MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}" >> .env
+          echo "MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}" >> .env
+
+          # 2) 실행 권한 부여 후 스크립트 실행
           chmod +x run_portfolio.sh
           ./run_portfolio.sh
