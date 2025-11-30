@@ -53,7 +53,7 @@ services:
       - infra_backend
 
   elasticsearch:
-    image: junghyeon13/es-nori:${IMAGE_TAG}   # ⭐ SHA 기반 태그
+    image: junghyeon13/es-nori:${IMAGE_TAG}
     container_name: es-nori
     environment:
       - node.name=es-node
@@ -66,6 +66,10 @@ services:
       memlock:
         soft: -1
         hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    privileged: true          # ⭐ 추가
     volumes:
       - esdata:/usr/share/elasticsearch/data
     ports:
@@ -78,6 +82,7 @@ services:
       retries: 10
     networks:
       - infra_backend
+
 
 volumes:
   esdata:
