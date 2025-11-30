@@ -1,6 +1,18 @@
 #!/bin/bash
 set -e
 
+echo "🚀 1️⃣ Docker daemon 확인/실행"
+
+# Docker daemon 확인
+if ! docker info > /dev/null 2>&1; then
+    echo "[INFO] Docker daemon not running. Starting dockerd..."
+    sudo rm -f /var/run/docker.pid
+    sudo nohup dockerd > /tmp/dockerd.log 2>&1 &
+    sleep 5
+fi
+
+echo "✅ Docker daemon 실행 중"
+
 echo "1️⃣ Docker Compose 서비스 시작"
 docker-compose up -d --build
 
