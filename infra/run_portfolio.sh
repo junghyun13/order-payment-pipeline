@@ -35,9 +35,10 @@ echo "🔧 Docker 연결 테스트..."
 docker run --rm hello-world
 echo "✅ Docker 연결 정상"
 
-# Docker Compose 서비스 실행
+# Docker Compose 서비스 실행 (Compose V2)
 echo "1️⃣ Docker Compose 서비스 시작"
-docker-compose up -d --build
+docker compose up -d --build
+
 
 # Tailscale Funnel 실행
 echo "2️⃣ Tailscale Funnel 실행 (포트 8080)"
