@@ -9,7 +9,7 @@ jobs:
     runs-on: self-hosted
 
     env:
-      IMAGE_TAG: ${{ github.sha }}   # ⭐ 깃 SHA로 이미지 버전 고정
+      IMAGE_TAG: ${{ github.sha }}   # ⭐ 깃 SHA로 이미지 버전 고정수정
 
     steps:
       # 1. 코드 체크아웃
