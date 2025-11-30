@@ -1,5 +1,5 @@
 #!/bin/bash
-# run_portfolio.sh
+# run_portfolio.sh코드
 set -e
 
 echo "🚀 1️⃣ Docker daemon 확인/실행"
