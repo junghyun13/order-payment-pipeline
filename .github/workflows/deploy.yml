@@ -9,55 +9,39 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      # 1️⃣ 코드 체크아웃
+      # 1) Checkout
       - name: Checkout
         uses: actions/checkout@v3
 
-      # 2️⃣ JDK 설치
+      # 2) JDK
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
           distribution: temurin
           java-version: 21
 
-      # 3️⃣ Gradle 실행 권한
+      # 3) gradlew 권한
       - name: Grant execute permission to gradlew
         run: chmod +x gradlew
 
-      # 4️⃣ Gradle 빌드 (테스트 제외)
+      # 4) Gradle 빌드
       - name: Build with Gradle
         run: ./gradlew clean build -x test
 
-      # 5️⃣ Docker Hub 로그인
+      # 5) Docker Hub 로그인
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 6️⃣ Docker daemon 확인
-      - name: Ensure Docker daemon running
-        run: |
-          unset DOCKER_HOST
-          unset DOCKER_TLS_VERIFY
-          unset DOCKER_CERT_PATH
-          docker context use default || true
+      # ❌ 삭제됨: Docker daemon 확인/실행
 
-          if ! docker info > /dev/null 2>&1; then
-              echo "[INFO] Docker daemon not running. Starting dockerd..."
-              sudo systemctl start docker || sudo nohup dockerd > /tmp/dockerd.log 2>&1 &
-              until docker info > /dev/null 2>&1; do
-                  echo "[INFO] Waiting for Docker daemon..."
-                  sleep 2
-              done
-          fi
-          echo "✅ Docker daemon running"
-
-      # 7️⃣ IMAGE_TAG 환경 변수 설정
+      # 6) 이미지 태그 설정
       - name: Set IMAGE_TAG
         run: echo "IMAGE_TAG=${GITHUB_SHA}" >> $GITHUB_ENV
 
-      # 8️⃣ Elasticsearch 이미지 체크/빌드/푸시
+      # 7) Elasticsearch 이미지 체크
       - name: Check Elasticsearch image exists
         id: check_es
         run: |
@@ -67,13 +51,14 @@ jobs:
             echo "exists_es=false" >> $GITHUB_ENV
           fi
 
+      # 8) Elasticsearch 빌드 & 푸시
       - name: Build & Push Elasticsearch Image
         if: env.exists_es == 'false'
         run: |
           docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/es-nori:${GITHUB_SHA} ./src/main/resources/elasticsearch
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/es-nori:${GITHUB_SHA}
 
-      # 9️⃣ Spring Boot 앱 이미지 체크/빌드/푸시
+      # 9) App 이미지 체크
       - name: Check App image exists
         id: check_app
         run: |
@@ -83,13 +68,14 @@ jobs:
             echo "exists_app=false" >> $GITHUB_ENV
           fi
 
+      # 10) App 이미지 빌드 & 푸시
       - name: Build & Push Spring Boot Image
         if: env.exists_app == 'false'
         run: |
           docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/springboot-app:${GITHUB_SHA} .
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/springboot-app:${GITHUB_SHA}
 
-      # 🔟 infra 배포
+      # 11) 서버 배포
       - name: Deploy to Server
         run: |
           cd /mnt/c/Users/jung0/test/order-payment-pipeline/infra

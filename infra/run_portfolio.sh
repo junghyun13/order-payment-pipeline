@@ -1,51 +1,31 @@
 #!/bin/bash
+#run_portfolio.sh 코드
 set -e
 
-echo "🚀 Docker daemon 확인/실행"
+echo "🚀 Deploy 시작 (Docker Desktop 사용)"
 
-# Docker daemon 확인 및 실행
-if ! docker info > /dev/null 2>&1; then
-    echo "[INFO] Docker daemon not running. 시작 시도..."
-    if sudo systemctl start docker; then
-        echo "[INFO] systemd를 통한 Docker 기동 완료"
-    else
-        echo "[WARN] systemd start 실패, nohup dockerd 백그라운드 기동"
-        sudo nohup dockerd > /tmp/dockerd.log 2>&1 &
-    fi
-
-    # Docker 완전 기동 대기
-    until docker info > /dev/null 2>&1; do
-        echo "[INFO] Docker daemon 시작 대기..."
-        sleep 2
-    done
-fi
-echo "✅ Docker daemon 실행 중"
-
-# Docker 그룹 권한 확인
-if ! groups $USER | grep -q '\bdocker\b'; then
-    echo "[WARN] $USER is docker 그룹 미가입. 추가 중..."
-    sudo usermod -aG docker $USER
-    echo "[INFO] 재로그인 필요: exec su -l $USER"
-    exit 1
-fi
+# Docker Desktop 데몬 자동 사용
+echo "✅ Docker Desktop Docker daemon 자동 실행 중"
 
 # BuildKit 활성화
 export DOCKER_BUILDKIT=1
-export DOCKER_CLI_PLUGIN_DIR=$HOME/.docker/cli-plugins
 echo "✅ BuildKit 활성화 완료"
 
 # Docker 연결 테스트
-docker run --rm hello-world
+docker run --rm hello-world >/dev/null 2>&1 || {
+    echo "[ERROR] Docker Desktop 연결 실패"
+    exit 1
+}
 echo "✅ Docker 연결 정상"
 
-# Docker Compose 파일 경로 확인
+# docker-compose 파일 존재 확인
 COMPOSE_FILE="./docker-compose.yml"
 if [ ! -f "$COMPOSE_FILE" ]; then
-    echo "[ERROR] docker-compose.yml 파일이 infra 디렉토리에 없습니다."
+    echo "[ERROR] docker-compose.yml 파일 없음"
     exit 1
 fi
 
-# docker-compose v1 / v2 대응
+# compose 명령 선택
 if command -v docker-compose >/dev/null 2>&1; then
     COMPOSE_CMD="docker-compose"
 else
@@ -56,21 +36,37 @@ echo "1️⃣ Docker Compose 서비스 시작"
 $COMPOSE_CMD -f "$COMPOSE_FILE" up -d --build
 $COMPOSE_CMD -f "$COMPOSE_FILE" ps
 
-# 선택: Tailscale Funnel 실행
+# ---------------------------
+# 🔥 TAILSCALE FUNNEL 추가됨
+# ---------------------------
 if command -v tailscale >/dev/null 2>&1; then
-    echo "🌐 Tailscale Funnel 실행 (포트 8080)"
-    sudo tailscale funnel 8080 &
+    echo "🌐 Tailscale Funnel 실행 (포트 8080 공개)"
+
+    # Tailscale 상태 확인
+    if ! tailscale status >/dev/null 2>&1; then
+        echo "🔑 Tailscale 로그인 필요. 로그인 창을 확인하세요."
+        sudo tailscale up
+    fi
+
+    # 기존 Funnel 중지 (중복 방지)
+    sudo tailscale funnel stop 8080 >/dev/null 2>&1 || true
+
+    # Funnel 실행
+    sudo tailscale funnel 8080 > /tmp/funnel.log 2>&1 &
+    echo "✨ Funnel 실행됨! 공개 URL:"
+    tailscale funnel status
 else
-    echo "[INFO] Tailscale 설치 안 됨. Funnel 실행 생략."
+    echo "[INFO] Tailscale 미설치 → Funnel 생략"
 fi
 
-# GitHub Actions Runner 자동 실행
+# ---------------------------
+
+echo "2️⃣ GitHub Actions Runner 유지 실행"
 RUNNER_DIR="$HOME/actions-runner"
 if [ -d "$RUNNER_DIR" ]; then
-    echo "2️⃣ GitHub Actions Runner 실행"
     cd "$RUNNER_DIR"
     nohup ./run.sh > runner.log 2>&1 &
-    echo "✅ GitHub Actions Runner 시작 완료: $RUNNER_DIR/runner.log"
+    echo "✅ Actions Runner 실행됨"
 fi
 
 echo "✅ 서비스 실행 완료!"
