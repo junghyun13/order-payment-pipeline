@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   app:
-    image: junghyeon13/springboot-app
+    image: junghyeon13/springboot-app:${IMAGE_TAG}   # ⭐ SHA 기반 태그
     container_name: orderpay-app
     ports:
       - "8080:8080"
@@ -10,7 +10,7 @@ services:
     environment:
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
-      WAIT_FOR_IT_TIMEOUT: "60"   # <- 타임아웃 환경변수 추가
+      WAIT_FOR_IT_TIMEOUT: "60"
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -21,8 +21,7 @@ services:
     entrypoint: >
       sh -c "WAIT_FOR_IT_TIMEOUT=60 /app/wait-for-it.sh es-nori:9200 && java -jar /app/app.jar"
     networks:
-      - infra_backend  # 변경된 네트워크 이름
-
+      - infra_backend
 
   redpanda:
     image: redpandadata/redpanda:latest
@@ -41,7 +40,7 @@ services:
       - --kafka-addr PLAINTEXT://0.0.0.0:9092
       - --advertise-kafka-addr PLAINTEXT://redpanda:9092
     networks:
-      - infra_backend  # 변경된 네트워크 이름
+      - infra_backend
 
   redis:
     image: redis:7-alpine
@@ -51,10 +50,10 @@ services:
     volumes:
       - redisdata:/data
     networks:
-      - infra_backend  # 변경된 네트워크 이름
+      - infra_backend
 
   elasticsearch:
-    image: junghyeon13/es-nori
+    image: junghyeon13/es-nori:${IMAGE_TAG}   # ⭐ SHA 기반 태그
     container_name: es-nori
     environment:
       - node.name=es-node
@@ -78,7 +77,7 @@ services:
       timeout: 5s
       retries: 10
     networks:
-      - infra_backend  # 변경된 네트워크 이름
+      - infra_backend
 
 volumes:
   esdata:
@@ -86,4 +85,4 @@ volumes:
 
 networks:
   infra_backend:
-    driver: bridge  # 네트워크 이름 변경
+    driver: bridge
