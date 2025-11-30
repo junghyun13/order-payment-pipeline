@@ -1,21 +1,21 @@
 #!/bin/bash
-# run_portfolio.sh코드
 set -e
 
-echo "🚀 1️⃣ Docker daemon 확인/실행"
+echo "🚀 Docker daemon 확인/실행"
 
 # Docker daemon 확인 및 실행
 if ! docker info > /dev/null 2>&1; then
-    echo "[INFO] Docker daemon not running. Starting dockerd..."
-    sudo rm -f /var/run/docker.pid /var/run/docker.sock
-    sudo nohup dockerd --host=unix:///var/run/docker.sock \
-                       --containerd=/run/containerd/containerd.sock \
-                       > /tmp/dockerd.log 2>&1 &
-    echo "[INFO] Docker daemon 로그: /tmp/dockerd.log"
+    echo "[INFO] Docker daemon not running. 시작 시도..."
+    if sudo systemctl start docker; then
+        echo "[INFO] systemd를 통한 Docker 기동 완료"
+    else
+        echo "[WARN] systemd start 실패, nohup dockerd 백그라운드 기동"
+        sudo nohup dockerd > /tmp/dockerd.log 2>&1 &
+    fi
 
     # Docker 완전 기동 대기
     until docker info > /dev/null 2>&1; do
-        echo "[INFO] Docker daemon starting..."
+        echo "[INFO] Docker daemon 시작 대기..."
         sleep 2
     done
 fi
@@ -23,20 +23,18 @@ echo "✅ Docker daemon 실행 중"
 
 # Docker 그룹 권한 확인
 if ! groups $USER | grep -q '\bdocker\b'; then
-    echo "[WARN] $USER is not in docker group. Adding..."
+    echo "[WARN] $USER is docker 그룹 미가입. 추가 중..."
     sudo usermod -aG docker $USER
-    echo "[INFO] 재로그인 필요. 다음 명령으로 세션 재시작 가능:"
-    echo "      exec su -l $USER"
+    echo "[INFO] 재로그인 필요: exec su -l $USER"
     exit 1
 fi
 
-# BuildKit / Buildx 활성화
+# BuildKit 활성화
 export DOCKER_BUILDKIT=1
 export DOCKER_CLI_PLUGIN_DIR=$HOME/.docker/cli-plugins
-echo "✅ BuildKit 및 Buildx 활성화 완료"
+echo "✅ BuildKit 활성화 완료"
 
 # Docker 연결 테스트
-echo "🔧 Docker 연결 테스트..."
 docker run --rm hello-world
 echo "✅ Docker 연결 정상"
 
@@ -47,30 +45,33 @@ if [ ! -f "$COMPOSE_FILE" ]; then
     exit 1
 fi
 
-# Docker Compose 서비스 실행 (V1)
+# docker-compose v1 / v2 대응
+if command -v docker-compose >/dev/null 2>&1; then
+    COMPOSE_CMD="docker-compose"
+else
+    COMPOSE_CMD="docker compose"
+fi
+
 echo "1️⃣ Docker Compose 서비스 시작"
-docker-compose -f "$COMPOSE_FILE" up -d --build
+$COMPOSE_CMD -f "$COMPOSE_FILE" up -d --build
+$COMPOSE_CMD -f "$COMPOSE_FILE" ps
 
-# 서비스 상태 출력
-echo "🔍 Docker Compose 서비스 상태:"
-docker-compose -f "$COMPOSE_FILE" ps
-
-# Tailscale Funnel 실행
-echo "2️⃣ Tailscale Funnel 실행 (포트 8080)"
-sudo tailscale funnel 8080 &
+# 선택: Tailscale Funnel 실행
+if command -v tailscale >/dev/null 2>&1; then
+    echo "🌐 Tailscale Funnel 실행 (포트 8080)"
+    sudo tailscale funnel 8080 &
+else
+    echo "[INFO] Tailscale 설치 안 됨. Funnel 실행 생략."
+fi
 
 # GitHub Actions Runner 자동 실행
 RUNNER_DIR="$HOME/actions-runner"
 if [ -d "$RUNNER_DIR" ]; then
-    echo "3️⃣ GitHub Actions Runner 실행"
+    echo "2️⃣ GitHub Actions Runner 실행"
     cd "$RUNNER_DIR"
     nohup ./run.sh > runner.log 2>&1 &
-    echo "[INFO] GitHub Actions Runner 로그: $RUNNER_DIR/runner.log"
-    echo "✅ GitHub Actions Runner 시작 완료"
+    echo "✅ GitHub Actions Runner 시작 완료: $RUNNER_DIR/runner.log"
 fi
-
-
-
 
 echo "✅ 서비스 실행 완료!"
 echo "외부에서 접속 가능한 URL:"

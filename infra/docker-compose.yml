@@ -53,23 +53,22 @@ services:
       - infra_backend
 
   elasticsearch:
-    image: junghyeon13/es-nori:${IMAGE_TAG}
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.14
     container_name: es-nori
     environment:
       - node.name=es-node
       - discovery.type=single-node
-      - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
       - xpack.security.enabled=false
       - http.host=0.0.0.0
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-      nofile:
-        soft: 65536
-        hard: 65536
-    privileged: true          # ⭐ 추가
+    # ulimits:
+    #   memlock:
+    #     soft: -1
+    #     hard: -1
+    #   nofile:
+    #     soft: 65536
+    #     hard: 65536
+    # privileged: true
     volumes:
       - esdata:/usr/share/elasticsearch/data
     ports:
@@ -82,6 +81,7 @@ services:
       retries: 10
     networks:
       - infra_backend
+
 
 
 volumes:
