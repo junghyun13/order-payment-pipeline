@@ -8,35 +8,49 @@ jobs:
   deploy:
     runs-on: self-hosted
 
-    env:
-      IMAGE_TAG: ${{ github.sha }}   # ⭐ 깃 SHA로 이미지 버전 고정수정
-
     steps:
-      # 1. 코드 체크아웃
+      # 1️⃣ 코드 체크아웃
       - name: Checkout
         uses: actions/checkout@v3
 
-      # 2. JDK 설치
+      # 2️⃣ JDK 설치
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
           distribution: temurin
           java-version: 21
 
-      # 3. Gradle 권한
+      # 3️⃣ Gradle 권한
       - name: Grant execute permission to gradlew
         run: chmod +x gradlew
 
-      # 4. 빌드 (테스트 제외)
+      # 4️⃣ Gradle 빌드 (테스트 제외)
       - name: Build with Gradle
         run: ./gradlew clean build -x test
 
-      # 5. Docker Hub 로그인
+      # 5️⃣ Docker Hub 로그인
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 6️⃣ Docker daemon 확인 / 기동
+      - name: Ensure Docker daemon running
+        run: |
+          if ! docker info > /dev/null 2>&1; then
+            echo "[INFO] Docker daemon not running. Starting dockerd..."
+            sudo dockerd --host=unix:///var/run/docker.sock --containerd=/run/containerd/containerd.sock > /tmp/dockerd.log 2>&1 &
+            until docker info > /dev/null 2>&1; do
+              echo "[INFO] Waiting for Docker daemon..."
+              sleep 2
+            done
+          fi
+          echo "✅ Docker daemon running"
+
+      # 7️⃣ IMAGE_TAG 환경 변수 설정
+      - name: Set IMAGE_TAG
+        run: echo "IMAGE_TAG=${GITHUB_SHA}" >> $GITHUB_ENV
 
       # -------------------------------
       # Elasticsearch 이미지 체크
@@ -44,40 +58,38 @@ jobs:
       - name: Check Elasticsearch image exists
         id: check_es
         run: |
-          if docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/es-nori:${IMAGE_TAG} > /dev/null 2>&1; then
+          if docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/es-nori:${GITHUB_SHA} > /dev/null 2>&1; then
             echo "exists_es=true" >> $GITHUB_ENV
           else
             echo "exists_es=false" >> $GITHUB_ENV
           fi
 
-      # 존재하지 않을 때만 빌드 & 푸시
       - name: Build & Push Elasticsearch Image
         if: env.exists_es == 'false'
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/es-nori:${IMAGE_TAG} ./src/main/resources/elasticsearch
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/es-nori:${IMAGE_TAG}
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/es-nori:${GITHUB_SHA} ./src/main/resources/elasticsearch
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/es-nori:${GITHUB_SHA}
 
       # -------------------------------
-      # Spring Boot 이미지 체크
+      # Spring Boot 앱 이미지 체크
       # -------------------------------
       - name: Check App image exists
         id: check_app
         run: |
-          if docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/springboot-app:${IMAGE_TAG} > /dev/null 2>&1; then
+          if docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/springboot-app:${GITHUB_SHA} > /dev/null 2>&1; then
             echo "exists_app=true" >> $GITHUB_ENV
           else
             echo "exists_app=false" >> $GITHUB_ENV
           fi
 
-      # 존재하지 않을 때만 빌드 & 푸시
       - name: Build & Push Spring Boot Image
         if: env.exists_app == 'false'
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/springboot-app:${IMAGE_TAG} .
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/springboot-app:${IMAGE_TAG}
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/springboot-app:${GITHUB_SHA} .
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/springboot-app:${GITHUB_SHA}
 
       # -------------------------------
-      #  .env 생성 + docker compose 실행
+      # infra 배포 (docker-compose + .env)
       # -------------------------------
       - name: Deploy to Local WSL
         run: |
@@ -88,10 +100,10 @@ jobs:
           echo "SPRING_DATASOURCE_PASSWORD=${{ secrets.SPRING_DATASOURCE_PASSWORD }}" >> .env
           echo "MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}" >> .env
           echo "MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}" >> .env
-          echo "IMAGE_TAG=${IMAGE_TAG}" >> .env          # ⭐ 이미지 버전 추가
+          echo "IMAGE_TAG=${GITHUB_SHA}" >> .env
 
           # 2) 실행 권한
           chmod +x run_portfolio.sh
 
-          # 3) 실행
+          # 3) docker-compose 실행
           ./run_portfolio.sh
