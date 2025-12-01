@@ -9,73 +9,44 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      # 1) Checkout
       - name: Checkout
         uses: actions/checkout@v3
 
-      # 2) JDK
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
           distribution: temurin
           java-version: 21
 
-      # 3) gradlew 권한
       - name: Grant execute permission to gradlew
         run: chmod +x gradlew
 
-      # 4) Gradle 빌드
       - name: Build with Gradle
         run: ./gradlew clean build -x test
 
-      # 5) Docker Hub 로그인
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # ❌ 삭제됨: Docker daemon 확인/실행
-
-      # 6) 이미지 태그 설정
       - name: Set IMAGE_TAG
         run: echo "IMAGE_TAG=${GITHUB_SHA}" >> $GITHUB_ENV
 
-      # 7) Elasticsearch 이미지 체크
-      - name: Check Elasticsearch image exists
-        id: check_es
+      - name: Check & Build Elasticsearch Image
         run: |
-          if docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/es-nori:${GITHUB_SHA} > /dev/null 2>&1; then
-            echo "exists_es=true" >> $GITHUB_ENV
-          else
-            echo "exists_es=false" >> $GITHUB_ENV
+          if ! docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/es-nori:${GITHUB_SHA} >/dev/null 2>&1; then
+            docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/es-nori:${GITHUB_SHA} ./src/main/resources/elasticsearch
+            docker push ${{ secrets.DOCKERHUB_USERNAME }}/es-nori:${GITHUB_SHA}
           fi
 
-      # 8) Elasticsearch 빌드 & 푸시
-      - name: Build & Push Elasticsearch Image
-        if: env.exists_es == 'false'
+      - name: Check & Build Spring Boot App Image
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/es-nori:${GITHUB_SHA} ./src/main/resources/elasticsearch
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/es-nori:${GITHUB_SHA}
-
-      # 9) App 이미지 체크
-      - name: Check App image exists
-        id: check_app
-        run: |
-          if docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/springboot-app:${GITHUB_SHA} > /dev/null 2>&1; then
-            echo "exists_app=true" >> $GITHUB_ENV
-          else
-            echo "exists_app=false" >> $GITHUB_ENV
+          if ! docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/springboot-app:${GITHUB_SHA} >/dev/null 2>&1; then
+            docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/springboot-app:${GITHUB_SHA} .
+            docker push ${{ secrets.DOCKERHUB_USERNAME }}/springboot-app:${GITHUB_SHA}
           fi
 
-      # 10) App 이미지 빌드 & 푸시
-      - name: Build & Push Spring Boot Image
-        if: env.exists_app == 'false'
-        run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/springboot-app:${GITHUB_SHA} .
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/springboot-app:${GITHUB_SHA}
-
-      # 11) 서버 배포
       - name: Deploy to Server
         run: |
           cd /mnt/c/Users/jung0/test/order-payment-pipeline/infra
@@ -86,4 +57,4 @@ jobs:
           echo "IMAGE_TAG=${GITHUB_SHA}" >> .env
 
           chmod +x run_portfolio.sh
-          ./run_portfolio.sh
+          sudo ./run_portfolio.sh
