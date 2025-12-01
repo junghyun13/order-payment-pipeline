@@ -1,4 +1,5 @@
 #!/bin/bash
+#run_portfolio.sh 코드 
 set -e
 
 echo "🚀 Deploy 시작 (WSL2 Docker Engine 환경)"
