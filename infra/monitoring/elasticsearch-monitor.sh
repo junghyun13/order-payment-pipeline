@@ -1,6 +1,8 @@
 #!/bin/bash
 
-ES="http://es-nori:9200"
+
+# WSL2 환경에서는 localhost 사용
+ES="http://localhost:9200"
 
 echo "==== Elasticsearch Cluster Health ===="
 curl -s "$ES/_cluster/health?pretty"
