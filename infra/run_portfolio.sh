@@ -1,5 +1,5 @@
 #!/bin/bash
-#run_portfolio.sh 코드 
+#run_portfolio.sh 코드
 set -e
 
 echo "🚀 Deploy 시작 (WSL2 Docker Engine 환경)"
@@ -46,6 +46,41 @@ fi
 echo "1️⃣ Docker Compose 서비스 시작"
 $COMPOSE_CMD -f "$COMPOSE_FILE" up -d --build
 $COMPOSE_CMD -f "$COMPOSE_FILE" ps
+
+# ---------------------------
+# 2️⃣ 컨테이너/시스템 모니터링
+# ---------------------------
+echo "📊 컨테이너 및 시스템 모니터링"
+bash "$BASE_DIR/monitoring/docker-health-check.sh"
+bash "$BASE_DIR/monitoring/system-health-check.sh"
+bash "$BASE_DIR/monitoring/elasticsearch-monitor.sh"
+
+echo "📦 스토리지 상태 확인"
+bash "$BASE_DIR/storage/disk-usage-report.sh"
+bash "$BASE_DIR/storage/mount-check.sh"
+
+# ---------------------------
+# 3️⃣ 백업
+# ---------------------------
+echo "💾 백업 진행"
+bash "$BASE_DIR/backup/backup-redis.sh"
+bash "$BASE_DIR/backup/backup-elasticsearch.sh"
+bash "$BASE_DIR/backup/backup-app-logs.sh"
+bash "$BASE_DIR/backup/rotate-logs.sh"
+
+# ---------------------------
+# 4️⃣ OS 보안 점검
+# ---------------------------
+echo "🔒 OS 보안 점검"
+bash "$BASE_DIR/os-security/linux-security-hardening.sh"
+bash "$BASE_DIR/os-security/user-permission-check.sh"
+bash "$BASE_DIR/os-security/fail2ban-setup.sh"
+
+# ---------------------------
+# 5️⃣ 장애 자동 복구 (선택)
+# ---------------------------
+echo "🚨 장애 자동 복구"
+bash "$BASE_DIR/incident/emergency-restart.sh"
 
 # ---------------------------
 # 2️⃣ TailScale Funnel (선택)

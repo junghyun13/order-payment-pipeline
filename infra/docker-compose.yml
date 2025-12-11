@@ -71,6 +71,7 @@ services:
     # privileged: true
     volumes:
       - esdata:/usr/share/elasticsearch/data
+      - esbackup:/usr/share/elasticsearch/backup   # ⭐ 추가!
     ports:
       - "9200:9200"
       - "9300:9300"
@@ -87,6 +88,7 @@ services:
 volumes:
   esdata:
   redisdata:
+  esbackup:   # ⭐ 추가
 
 networks:
   infra_backend:
