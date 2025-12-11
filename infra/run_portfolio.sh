@@ -2,6 +2,9 @@
 #run_portfolio.sh 코드
 set -e
 
+# 🔹 BASE_DIR 정의 (현재 스크립트 위치 기준)
+BASE_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+
 echo "🚀 Deploy 시작 (WSL2 Docker Engine 환경)"
 
 # ---------------------------
